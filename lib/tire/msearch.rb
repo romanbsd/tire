@@ -1,3 +1,4 @@
+require 'set'
 module Tire
   module Search
     # Multi Search API
@@ -12,7 +13,15 @@ module Tire
         @options = options
         @parts = []
         @path = '/_msearch'
+        @indices = Set.new
         instance_eval(&block)
+      end
+
+      # The indices which are being queried
+      #
+      # @return [Array] indices
+      def indices
+        @indices.to_a
       end
 
       # Create a search part
@@ -21,11 +30,13 @@ module Tire
       # @param [Hash] options, can be mapping, search_type, preference and routing
       def search(index, options = {}, &block)
         searcher = Tire::Search::Search.new(index, &block)
+        options = options.dup
         if index.include?('/')
           index, type = index.split('/', 2)
-          searcher.filter('type', value: type)
+          options[:type] = type
         end
-        @parts << [index, options.dup, searcher]
+        @indices << index
+        @parts << [index, options, searcher]
       end
 
       # The msearch body
