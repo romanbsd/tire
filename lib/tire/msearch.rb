@@ -41,10 +41,12 @@ module Tire
 
       # The msearch body
       def to_json
-        @parts.map do |(index, options, part)|
+        parts = @parts.map do |(index, options, part)|
           header = options.merge(index: index)
           [header.to_json, part.to_json].join("\n")
-        end.join("\n")
+        end
+        parts << "\n"
+        parts.join("\n")
       end
 
       # Perform the msearch. The results are returned as Array<Tire::Results::Collection>
