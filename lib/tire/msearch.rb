@@ -45,7 +45,7 @@ module Tire
           header = options.merge(index: index)
           [header.to_json, part.to_json].join("\n")
         end
-        parts << "\n"
+        parts << ''
         parts.join("\n")
       end
 
