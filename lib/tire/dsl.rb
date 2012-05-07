@@ -43,5 +43,9 @@ module Tire
       Search::Scan.new(names, options, &block)
     end
 
+    def aliases
+      Alias.all
+    end
+
   end
 end
