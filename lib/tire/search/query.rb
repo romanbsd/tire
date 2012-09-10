@@ -34,6 +34,14 @@ module Tire
         @value
       end
 
+      def prefix(field, value, options={})
+        if options[:boost]
+          @value = { :prefix => { field => { :prefix => value, :boost => options[:boost] } } }
+        else
+          @value = { :prefix => { field => value } }
+        end
+      end
+
       def custom_score(options={}, &block)
         @custom_score ||= Query.new(&block)
         @value[:custom_score] = options
@@ -57,6 +65,13 @@ module Tire
         @filtered = FilteredQuery.new
         block.arity < 1 ? @filtered.instance_eval(&block) : block.call(@filtered) if block_given?
         @value[:filtered] = @filtered.to_hash
+        @value
+      end
+
+      def dis_max(options={}, &block)
+        @dis_max ||= DisMaxQuery.new(options)
+        block.arity < 1 ? @dis_max.instance_eval(&block) : block.call(@dis_max) if block_given?
+        @value[:dis_max] = @dis_max.to_hash
         @value
       end
 
@@ -119,7 +134,6 @@ module Tire
       end
     end
 
-
     class FilteredQuery
       def initialize(&block)
         @value = {}
@@ -140,6 +154,27 @@ module Tire
 
       def to_hash
         @value
+      end
+
+      def to_json
+        to_hash.to_json
+      end
+    end
+
+    class DisMaxQuery
+      def initialize(options={}, &block)
+        @options = options
+        @value   = {}
+        block.arity < 1 ? self.instance_eval(&block) : block.call(self) if block_given?
+      end
+
+      def query(&block)
+        (@value[:queries] ||= []) << Query.new(&block).to_hash
+        @value
+      end
+
+      def to_hash
+        @value.update(@options)
       end
 
       def to_json

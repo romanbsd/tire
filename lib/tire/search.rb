@@ -11,6 +11,10 @@ module Tire
         @response || (perform; @response)
       end
 
+      def json
+        @json     || (perform; @json)
+      end
+
       def url
         Configuration.url + @path
       end
@@ -50,16 +54,30 @@ module Tire
     class Search
       include Common
 
-      attr_reader :indices, :json, :query, :facets, :filters, :options, :explain
+      attr_reader :indices, :query, :facets, :filters, :options, :explain, :script_fields
 
       def initialize(indices=nil, options={}, &block)
-        @indices = Array(indices)
+        if indices.is_a?(Hash)
+          set_indices_options(indices)
+          @indices = indices.keys
+        else
+          @indices = Array(indices)
+        end
         @types   = Array(options.delete(:type)).map { |type| Utils.escape(type) }
         @options = options
 
         @path    = ['/', @indices.join(','), @types.join(','), '_search'].compact.join('/').squeeze('/')
 
         block.arity < 1 ? instance_eval(&block) : block.call(self) if block_given?
+      end
+
+      def set_indices_options(indices)
+        indices.each do |index, index_options|
+          if index_options[:boost]
+            @indices_boost ||= {}
+            @indices_boost[index] = index_options[:boost]
+          end
+        end
       end
 
       def query(&block)
@@ -82,6 +100,12 @@ module Tire
       def filter(type, *options)
         @filters ||= []
         @filters << Filter.new(type, *options).to_hash
+        self
+      end
+
+      def script_field(name, options={})
+        @script_fields ||= {}
+        @script_fields.merge! ScriptField.new(name, options).to_hash
         self
       end
 
@@ -118,6 +142,7 @@ module Tire
 
       def version(value)
         @version = value
+        self
       end
 
       def perform
@@ -136,6 +161,7 @@ module Tire
       def to_hash
         @options.delete(:payload) || begin
           request = {}
+          request.update( { :indices_boost => @indices_boost } ) if @indices_boost
           request.update( { :query  => @query.to_hash } )    if @query
           request.update( { :sort   => @sort.to_ary   } )    if @sort
           request.update( { :facets => @facets.to_hash } )   if @facets
@@ -145,6 +171,7 @@ module Tire
           request.update( { :size => @size } )               if @size
           request.update( { :from => @from } )               if @from
           request.update( { :fields => @fields } )           if @fields
+          request.update( { :script_fields => @script_fields } ) if @script_fields
           request.update( { :version => @version } )         if @version
           request.update( { :explain => @explain } )         if @explain
           request

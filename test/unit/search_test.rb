@@ -17,6 +17,14 @@ module Tire
         assert_match %r|/index1,index2/_search|, s.url
       end
 
+      should "be initialized with multiple indices with options" do
+        indices = {'index1' => {:boost => 1},'index2' => {:boost => 2}}
+        s = Search::Search.new(indices) { query { string 'foo' } }
+        assert_match /index1/, s.url
+        assert_match /index2/, s.url
+        assert_equal({'index1' => 1, 'index2' => 2}, s.to_hash[:indices_boost])
+      end
+
       should "be initialized with multiple indices as string" do
         s = Search::Search.new(['index1,index2,index3']) { query { string 'foo' } }
         assert_match %r|/index1,index2,index3/_search|, s.url
@@ -137,7 +145,8 @@ module Tire
                                       sort { by :title, 'desc' }.
                                       size(5).
                                       sort { by :name, 'asc' }.
-                                      from(1)
+                                      from(1).
+                                      version(true)
         end
       end
 
@@ -149,6 +158,7 @@ module Tire
         s = Search::Search.new('index')
         assert_not_nil s.results
         assert_not_nil s.response
+        assert_not_nil s.json
       end
 
       should "allow the search criteria to be chained" do
@@ -315,7 +325,7 @@ module Tire
 
       context "with version" do
 
-        should "set the version value in options" do
+        should "set the version" do
           s = Search::Search.new('index') do
             version true
           end
@@ -449,6 +459,40 @@ module Tire
       end
 
     end
+
+    context "script field" do
+
+      should "allow to specify script field" do
+        s = Search::Search.new('index') do
+          script_field :test1, :script => "doc['my_field_name'].value * 2"
+        end
+
+        assert_equal 1, s.script_fields.size
+
+        assert_not_nil s.script_fields
+        assert_not_nil s.script_fields[:test1]
+
+        assert_equal( {:test1 => { :script => "doc['my_field_name'].value * 2" }}.to_json,
+                     s.to_hash[:script_fields].to_json )
+      end
+
+      should "allow to add multiple script fields" do
+        s = Search::Search.new('index') do
+          script_field :field1, :script => "doc['my_field_name'].value * 2"
+          script_field :field2, :script => "doc['other_field_name'].value * 3"
+        end
+
+        assert_equal 2, s.script_fields.size
+
+        assert_not_nil  s.script_fields[:field1]
+        assert_not_nil  s.script_fields[:field2]
+
+        assert_equal( { :field1 => { :script => "doc['my_field_name'].value * 2" }, :field2 => { :script => "doc['other_field_name'].value * 3" } }.to_json,
+                     s.to_hash[:script_fields].to_json )
+      end
+
+    end
+
 
   end
 

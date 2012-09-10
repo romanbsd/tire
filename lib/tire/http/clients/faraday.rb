@@ -1,17 +1,29 @@
 require 'faraday'
 
+# A Faraday-based HTTP client, which allows you to choose a HTTP client.
+#
+# See <https://github.com/technoweenie/faraday/tree/master/lib/faraday/adapter>
+#
+# NOTE: Tire will switch to Faraday for the HTTP abstraction layer. This client is a temporary solution.
+#
 # Example:
+# --------
 #
-# require 'tire/http/clients/faraday'
-# Tire.configure do |config|
-#   # Unless specified, tire will use Faraday.default_adapter and no middleware
-#   Tire::HTTP::Client::Faraday.faraday_middleware = Proc.new do |builder|
-#     builder.adapter :net_http_persistent
-#     builder.use FaradayMiddleware::Instrumentation, :name => 'request.tire'
-#   end
+#     require 'typhoeus'
+#     require 'tire/http/clients/faraday'
 #
-#   config.client(Tire::HTTP::Client::Faraday)
-# end
+#     Tire.configure do |config|
+#
+#       # Unless specified, tire will use Faraday.default_adapter and no middleware
+#       Tire::HTTP::Client::Faraday.faraday_middleware = Proc.new do |builder|
+#         builder.adapter :typhoeus
+#       end
+#
+#       config.client(Tire::HTTP::Client::Faraday)
+#
+#     end
+#
+#
 
 module Tire
   module HTTP
